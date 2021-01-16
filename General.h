@@ -8,6 +8,7 @@
 char*	getStrExactName(const char* msg);
 char*	myGets(char* buffer, int size, FILE* fp);
 char*	getDynStr(char* str);
+char*	appendToString(char* str, const char* firstAppend, va_list list);
 char**	splitCharsToWords(char* str,int* pCount,int* pTotalLength);
 void	printStr(const void* str);
 void	freePtr(void* str);

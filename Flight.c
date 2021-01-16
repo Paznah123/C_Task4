@@ -83,6 +83,8 @@ int		countFlightsInRoute(Flight** arr, int size, const char* codeSource,
 
 int saveFlightToFile(const Flight* pF, FILE* fp)
 {
+	fwrite(pF->originCode, sizeof(char), CODE_LENGTH, fp);
+	fwrite(pF->destCode, sizeof(char), CODE_LENGTH, fp);
 
 	int year = pF->date.year << 14;
 	int month = pF->date.month << 10;
@@ -90,34 +92,23 @@ int saveFlightToFile(const Flight* pF, FILE* fp)
 	int hour = pF->hour;
 
 	int flightData = year | month | day | hour;
-	if (fwrite(&flightData, sizeof(int), 1, fp) != 1)
-	{
-		printf("Error write flight\n");
-		return 0;
-	}
+	CHECK_0_MSG_CLOSE_FILE(fwrite(&flightData, sizeof(int), 1, fp),fp,"Error write flight\n")
+
 	return 1;
 }
 
 int loadFlightFromFile(Flight* pF, FILE* fp)
 {
-	char newOriginCode[CODE_LENGTH + 1] = { 0 };
-	char newDestCode[CODE_LENGTH + 1] = { 0 };
-	CHECK_0_MSG_CLOSE_FILE(fread(newOriginCode, sizeof(char), CODE_LENGTH, fp), fp, "Error reding origin code");
-	CHECK_0_MSG_CLOSE_FILE(fread(newDestCode, sizeof(char), CODE_LENGTH, fp), fp, "Error reding destination code");
-
-	strcpy(pF->originCode, newOriginCode);
-	strcpy(pF->destCode, newDestCode);
+	CHECK_0_MSG_CLOSE_FILE(fread(pF->originCode, sizeof(char), CODE_LENGTH, fp), fp, "Error reading origin code");
+	CHECK_0_MSG_CLOSE_FILE(fread(pF->destCode, sizeof(char), CODE_LENGTH, fp), fp, "Error reading destination code");
 
 	unsigned int flightData = 0;
-	CHECK_0_MSG_CLOSE_FILE(fread(&flightData, sizeof(int), 1, fp), fp, "Error reding flight data");
+	CHECK_0_MSG_CLOSE_FILE(fread(&flightData, sizeof(int), 1, fp), fp, "Error reading flight data");
 
-	pF->date.year = flightData >> 14;
-	flightData <<= 18;
-	pF->date.month = flightData >> 28;
-	flightData <<= 4;
-	pF->date.day = flightData >> 27;
-	flightData <<= 5;
-	pF->hour = flightData >> 27;
+	pF->date.year = (flightData >> 14) & 0x3FFFF;
+	pF->date.month = (flightData >> 10) & 0xF;
+	pF->date.day = (flightData >> 5) & 0x1F;
+	pF->hour = flightData & 0xF;
 
 	return 1;
 }
@@ -173,17 +164,12 @@ int		compareByDate(const void* flight1, const void* flight2)
 
 //================================= print
 
-void	printFlight(const Flight* pFlight)
+void	printFlight(const void* val)
 {
+	const Flight* pFlight = *(const Flight**)val;
 	printf("Flight - %s -> %s | ", pFlight->originCode, pFlight->destCode);
 	printf("Hour: %d\t", pFlight->hour);
 	printDate(&pFlight->date);
-}
-
-void	printFlightV(const void* val)
-{
-	const Flight* pFlight = *(const Flight**)val;
-	printFlight(pFlight);
 }
 
 //================================= free

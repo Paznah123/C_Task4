@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "General.h"
 #include "Macros.h"
@@ -69,6 +70,39 @@ char**	splitCharsToWords(char* str, int* pCount, int* pTotalLength)
 	}
 	*pCount = count;
 	return wordsArray;
+}
+
+char* appendToString( char* str, const char* firstAppend, va_list list) {
+	const char* strTemp;
+	char* longStr = NULL;
+	int combineLength = 0;
+
+	strTemp = firstAppend;
+	while (strTemp != NULL)
+	{
+		if (combineLength == 0)
+		{
+			combineLength = (int)strlen(str) + (int)strlen(strTemp) + 2;
+			longStr = (char*)realloc(longStr, combineLength * sizeof(char));
+			if (!longStr)
+				return;
+
+			strcpy(longStr, str);
+			strcat(longStr, "_");
+			strcat(longStr, strTemp);
+		}
+		else {
+			combineLength += (strlen(strTemp) + 2);
+			longStr = (char*)realloc(longStr, combineLength * sizeof(char));
+			strcat(longStr, "_");
+			strcat(longStr, strTemp);
+		}
+		strTemp = va_arg(list, const char*);
+	}
+
+	longStr[combineLength - 1] = '\0';
+
+	return longStr;
 }
 
 //================================= 

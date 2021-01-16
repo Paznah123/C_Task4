@@ -109,9 +109,6 @@ int		saveCompanyToFile(const Company* pComp, const char* fileName) {
 
 	for (int i = 0; i < pComp->flightCount; i++)
 	{
-		fwrite(&pComp->flightArr[i]->originCode, sizeof(char), CODE_LENGTH, fp);
-		fwrite(&pComp->flightArr[i]->destCode, sizeof(char), CODE_LENGTH, fp);
-
 		if (!saveFlightToFile(pComp->flightArr[i], fp))
 			return 0;
 	}
@@ -131,19 +128,17 @@ int loadCompanyFromFile(Company* pComp, const char* fileName)
 	fread(&pCompData, sizeof(short), 1, fp);
 	int length = pCompData & 0xF;
 	pComp->flightCount = pCompData >> 7;
-	pCompData <<= 8;
 
-	pComp->sortOpt = pCompData >> 15;
-	pComp->name = (char*)malloc(sizeof(char) * (length + 1));
+	pComp->sortOpt = (pCompData >> 4) & 7;
+	pComp->name = (char*)calloc(length + 1, sizeof(char));
 	fread(pComp->name, sizeof(char), length + 1, fp);
 
 	pComp->flightArr = (Flight**)malloc(pComp->flightCount * sizeof(Flight*));
 	for (int i = 0; i < pComp->flightCount; i++)
 	{
 		pComp->flightArr[i] = (Flight*)calloc(1, sizeof(Flight));
-		CHECK_RETURN_0(pComp->flightArr[i]);
-		if (!loadFlightFromFile(pComp->flightArr[i], fp))
-			return 0;
+		CHECK_RETURN_NULL(pComp->flightArr[i]);
+		CHECK_RETURN_0(loadFlightFromFile(pComp->flightArr[i], fp));
 	}
 	fclose(fp);
 	return 1;
@@ -266,74 +261,15 @@ void	printCompany(const Company* pComp, const char* str, ...)
 	printf("Has %d flights\n\n", pComp->flightCount);
 #else
 	va_list list;
-	const char* strTemp;
-	char* longStr = NULL;
-	int combineLength = 0;
-
 	va_start(list, str);
-	strTemp = str;
-	while (strTemp != NULL)
-	{
-		if (combineLength == 0)
-		{
-			combineLength = (int)strlen(pComp->name) + (int)strlen(strTemp) + 2;
-			longStr = (char*)realloc(longStr, combineLength * sizeof(char));
-			if (!longStr)
-				return;
-
-			strcpy(longStr, pComp->name);
-			strcat(longStr, "_");
-			strcat(longStr, strTemp);
-		}
-		else {
-			combineLength += (strlen(strTemp) + 2);
-			longStr = (char*)realloc(longStr, combineLength * sizeof(char));
-			strcat(longStr, "_");
-			strcat(longStr, strTemp);
-		}
-		strTemp = va_arg(list, const char*);
-	}
-
-	longStr[combineLength - 1] = '\0';
+	char* longStr = appendToString(pComp->name, str, list);
+	
 	printf("Company : %s\n\n", longStr);
 	printf("Has %d flights\n\n", pComp->flightCount);
-	generalArrayFunction((void*)pComp->flightArr, pComp->flightCount, sizeof(Flight**), printFlightV);
+	generalArrayFunction((void*)pComp->flightArr, pComp->flightCount, sizeof(Flight*), printFlight);
 	printf("\nFlight Date List:");
 	L_print(&pComp->flightDateList, printStr);
 #endif
-}
-
-//================================= 
-
-char* combiningStrings(const char* str, ...)
-{
-	va_list list;
-	const char* strTemp;
-	char* longStr = NULL;
-	int combineLength = 0;
-	int len;
-
-	va_start(list, str);
-	strTemp = str;
-	while (strTemp != NULL)
-	{
-		len = (int)strlen(strTemp);
-		longStr = (char*)realloc(longStr, (combineLength + len + 2) * sizeof(char));
-		if (!longStr)
-			return NULL;
-
-		if (combineLength == 0) {
-			strcpy(longStr, strTemp);
-			combineLength = len;
-		} else {
-			strcat(longStr, "_");
-			strcat(longStr, strTemp);
-			combineLength += (len + 1);
-		}
-		strTemp = va_arg(list, const char*);
-	}
-	va_end(list);
-	return longStr;
 }
 
 //================================= free
